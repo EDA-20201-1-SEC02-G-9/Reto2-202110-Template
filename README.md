@@ -1,4 +1,11 @@
+Req2: Diego Alejandro Ramirez Garrido - d.ramirezg@uniandes.edu.co - 202013233
+
+
+Req3: Sebastián Murcia Gómez - s.murciag@uniandes.edu.co - 202015229
+
 #ISIS1225 - Librerias de soporte
+
+
 
 Este proyecto contiene los Tipos abstractos de datos, estructuras de datos y algoritmos requeridos por el curso ISIS1225-Estructuras de Datos y Algoritmos
 
