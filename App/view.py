@@ -37,9 +37,18 @@ operación solicitada
 def printMenu():
     print("Bienvenido")
     print("1- Cargar información en el catálogo")
-    print("2- ")
+    print("2- Buscar los videos con más Likes")
 
 catalog = None
+
+def printResults(parameters,result):
+    size = len(parameters)
+    str_format = ''
+    indexes = [str(i) for i in range(0, size)]
+    str_format = '{'+':^20s}   {'.join(indexes) + ':^20s}'
+    print(str_format.format(*tuple(parameters)))
+    for line in result:
+        print(str_format.format(*tuple(line)))
 
 """
 Menu principal
@@ -49,10 +58,28 @@ while True:
     inputs = input('Seleccione una opción para continuar\n')
     if int(inputs[0]) == 1:
         print("Cargando información de los archivos ....")
-
+        catalog= controller.initCatalog()
+        dir = None
+        # get first element of catalog
+        for x in catalog:
+            dir = x[0]['elements']
+            break
+        print("\nPrimer video: ",dir[2])
+        print("Canal: ", dir[3])
+        print("Fecha de tendencia: ",dir[1])
+        print("País: ",dir[-1])
+        print("vistas: ",dir[6])
+        print("Likes: ",dir[7])
+        print("Dislikes: ",dir[8],"\n")
+        print("Id  Nombre")
+        for a in catalog.tags["elements"]:
+            print (a[0],"  ",a[1])
     elif int(inputs[0]) == 2:
-        pass
-
+        category = int(input("Introduzca la categoria que quiere consultar: "))
+        n = int(input("Introduzca n: "))
+        print_parameters = ['title', 'channel_title', 'publish_time', 'views', 'likes', 'dislikes']
+        result = controller.req_4(catalog, print_parameters, n=n, tag=category)
+        printResults(print_parameters, result)
     else:
         sys.exit(0)
 sys.exit(0)

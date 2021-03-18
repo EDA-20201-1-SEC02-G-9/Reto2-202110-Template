@@ -26,6 +26,7 @@
 
 
 import config as cf
+import csv
 from DISClib.ADT import list as lt
 from DISClib.ADT import map as mp
 from DISClib.DataStructures import mapentry as me
@@ -37,13 +38,110 @@ Se define la estructura de un catálogo de videos. El catálogo tendrá dos list
 los mismos.
 """
 
-# Construccion de modelos
+def has_tag(video, tag):
+        return lt.isPresent(video[1], tag)
 
-# Funciones para agregar informacion al catalogo
+def add_to_top(video, top):
+    iter_video = top['first']
+    while iter_video['next'] and lt.getElement(video[0], 8) > lt.getElement(iter_video['next']['info'][0], 8):
+        iter_video = iter_video['next']
+    next = iter_video['next']
+    iter_video['next'] = {'info': video, 'next': next}
+    if not next:
+        top['last'] = iter_video['next']
+    top['size'] += 1
+
+def if_add_video_req_4(video, top, category: int, n: int):
+    if lt.getElement(video[0], 5) == category:
+        print(lt.getElement(video[0], 8))
+        min_top = None
+        if not lt.isEmpty(top):
+            min_top = lt.firstElement(top)
+        if not min_top:
+            lt.addFirst(top, video)
+        # ... or likesVideo > likesMinTop:
+        elif lt.size(top) < n or lt.getElement(video[0], 8) > lt.getElement(min_top[0], 8):
+            add_to_top(video, top)
+        print(lt.size(top))
+        if lt.size(top) > n:
+            lt.removeFirst(top)
+
+class catalog_iterator:
+    def __init__(self, catalog):
+        listi = mp.valueSet(catalog.videos)
+        self.value = listi['first']
+    
+    def __next__(self):
+        if not self.value:
+            raise StopIteration
+        current = self.value
+        self.value = self.value['next']
+        return current['info']
+
+class video_catalog:
+    # Funciones para agregar informacion al catalogo
+    def add_video(self, line):
+        if line:
+            categories = lt.newList(datastructure='ARRAY_LIST')
+            tags = lt.newList()
+            for element in line.items():
+                if element[0] in ['likes','dislikes','views','comment_count','category_id']:
+                    lt.addLast(categories, int(element[1]))
+                elif element[0] != 'tags':
+                    lt.addLast(categories, element[1])
+                else:
+                    tagl = element[1].replace('"', '').split('|')
+                    for tag in tagl:
+                        lt.addLast(tags, tag)
+            mp.put(self.videos, categories['elements'][0], (categories, tags))
+    
+    # Construccion de modelos
+    def add_videos(self, filepath: str):
+        if filepath is not None:
+            input_file = csv.DictReader(open(filepath, encoding="utf-8"),
+                                        delimiter=',')
+            size = 375000
+            self.videos = mp.newMap(numelements=size)
+            for line in input_file:
+                self.add_video(line)
+
+    def add_tags(self, filepath, type="ARRAY_LIST"):
+        self.tags=lt.newList(type)
+        data= open(filepath)
+        data.readline()
+        linea= data.readline().replace("\n","").split("\t")
+        while len(linea)>1:
+            lt.addLast(self.tags,linea)
+            linea=data.readline().replace("\n","").split("\t")
+
+    def __init__(self, filepath_videos: str, filepath_tags: str):
+        self.videos = None
+        self.add_videos(filepath_videos)
+        self.tags = None
+        self.add_tags(filepath_tags)
+    
+    def __iter__(self):
+        return catalog_iterator(self)
+
+    def req_4(self, category: int, n: int):
+        top = lt.newList()
+        for video in self:
+             if_add_video_req_4(video, top, category, n)
+        return top
+
+
+
 
 # Funciones para creacion de datos
 
+
+
 # Funciones de consulta
+
+
+
+def has_tag(videos, id, tag):
+    return lt.isPresent(mp.get(videos, id), tag)
 
 # Funciones utilizadas para comparar elementos dentro de una lista
 
