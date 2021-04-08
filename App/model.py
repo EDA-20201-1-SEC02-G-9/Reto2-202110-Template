@@ -31,6 +31,8 @@ from DISClib.ADT import list as lt
 from DISClib.ADT import map as mp
 from DISClib.DataStructures import mapentry as me
 from DISClib.Algorithms.Sorting import shellsort as sa
+from DISClib.DataStructures import linkedlistiterator as lliterator
+from DISClib.DataStructures import arraylistiterator as aliterator
 assert cf
 
 """
@@ -68,15 +70,19 @@ def if_add_video_req_4(video, top, category: int, n: int):
 
 class catalog_iterator:
     def __init__(self, catalog):
-        listi = mp.valueSet(catalog.videos)
-        self.value = listi['first']
+        super_list = mp.valueSet(catalog.videos)
+        self.super_iter = lliterator.newIterator(super_list)
+        self.especific_iter = aliterator.newIterator(lliterator.next(self.super_iter))
+
     
     def __next__(self):
-        if not self.value:
-            raise StopIteration
-        current = self.value
-        self.value = self.value['next']
-        return current['info']
+        while not aliterator.hasNext(self.especific_iter):
+            if not lliterator.hasNext(self.super_iter):
+                raise StopIteration
+            else:
+                self.especific_iter = aliterator.newIterator(lliterator.next(self.super_iter))
+        current = aliterator.next(self.especific_iter)
+        return current
 
 class video_catalog:
     # Funciones para agregar informacion al catalogo
@@ -93,14 +99,20 @@ class video_catalog:
                     tagl = element[1].replace('"', '').split('|')
                     for tag in tagl:
                         lt.addLast(tags, tag)
-            mp.put(self.videos, categories['elements'][0], (categories, tags))
+            country_list_pair = mp.get(self.videos, lt.getElement(categories, 16))
+            if country_list_pair:
+                country_list = country_list_pair[1]
+            else:
+                country_list = lt.newList(datastructure='ARRAY_LIST')
+                mp.put(self.videos, lt.getElement(categories, 15), country_list)
+            lt.addLast(country_list, (categories, tags))
     
     # Construccion de modelos
     def add_videos(self, filepath: str):
         if filepath is not None:
             input_file = csv.DictReader(open(filepath, encoding="utf-8"),
                                         delimiter=',')
-            size = 375000
+            size = 20
             self.videos = mp.newMap(numelements=size)
             for line in input_file:
                 self.add_video(line)
