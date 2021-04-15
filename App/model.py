@@ -43,9 +43,9 @@ los mismos.
 def has_tag(video, tag):
         return lt.isPresent(video[1], tag)
 
-def add_to_top(video, top):
+def add_to_top(video, top, k: int):
     iter_video = top['first']
-    while iter_video['next'] and lt.getElement(video[0], 8) > lt.getElement(iter_video['next']['info'][0], 8):
+    while iter_video['next'] and lt.getElement(video[0], k) > lt.getElement(iter_video['next']['info'][0], k):
         iter_video = iter_video['next']
     next = iter_video['next']
     iter_video['next'] = {'info': video, 'next': next}
@@ -53,36 +53,96 @@ def add_to_top(video, top):
         top['last'] = iter_video['next']
     top['size'] += 1
 
-def if_add_video_req_4(video, top, category: int, n: int):
-    if lt.getElement(video[0], 5) == category:
-        print(lt.getElement(video[0], 8))
-        min_top = None
-        if not lt.isEmpty(top):
-            min_top = lt.firstElement(top)
-        if not min_top:
-            lt.addFirst(top, video)
-        # ... or likesVideo > likesMinTop:
-        elif lt.size(top) < n or lt.getElement(video[0], 8) > lt.getElement(min_top[0], 8):
-            add_to_top(video, top)
-        print(lt.size(top))
-        if lt.size(top) > n:
-            lt.removeFirst(top)
+def if_add_video_req(video, top, k:int, n: int):
+    min_top = None
+    if not lt.isEmpty(top):
+        min_top = lt.firstElement(top)
+    if not min_top:
+        lt.addFirst(top, video)
+    # ... or likesVideo > likesMinTop:
+    elif lt.size(top) < n or lt.getElement(video[0], k) > lt.getElement(min_top[0], k):
+        add_to_top(video, top, k)
+    if lt.size(top) > n:
+        lt.removeFirst(top)
 
 class catalog_iterator:
     def __init__(self, catalog):
         super_list = mp.valueSet(catalog.videos)
         self.super_iter = lliterator.newIterator(super_list)
-        self.especific_iter = aliterator.newIterator(lliterator.next(self.super_iter))
+        country_map = lliterator.next(self.super_iter)
+        country_list = mp.valueSet(country_map)
+        self.country_iter = lliterator.newIterator(country_list)
+        self.category_iter = aliterator.newIterator(lliterator.next(self.country_iter))
 
     
     def __next__(self):
-        while not aliterator.hasNext(self.especific_iter):
+        while not aliterator.hasNext(self.category_iter):
+            while not lliterator.hasNext(self.country_iter):
+                if not lliterator.hasNext(self.super_iter):
+                    raise StopIteration
+                else:
+                    country_list = mp.valueSet(lliterator.next(self.super_iter))
+                    self.country_iter = lliterator.newIterator(country_list)
+            self.category_iter = aliterator.newIterator(lliterator.next(self.country_iter))
+        current = aliterator.next(self.category_iter)
+        return current
+
+class country_iterator:
+    def __init__(self, catalog, country):
+        country_map = mp.get(catalog.videos, country)['value']
+        country_list = mp.valueSet(country_map)
+        self.country_iter = lliterator.newIterator(country_list)
+        self.category_iter = aliterator.newIterator(lliterator.next(self.country_iter))
+    
+    def __next__(self):
+        while not aliterator.hasNext(self.category_iter):
+            if not lliterator.hasNext(self.country_iter):
+                raise StopIteration
+            else:
+                self.category_iter = aliterator.newIterator(lliterator.next(self.country_iter))
+        current = aliterator.next(self.category_iter)
+        return current
+    
+    def __iter__(self):
+        return self
+
+class country_category_iterator:
+    def __init__(self, catalog, country, category):
+        country_map = mp.get(catalog.videos, country)['value']
+        category_list = mp.get(country_map, category)['value']
+        self.category_iter = aliterator.newIterator(category_list)
+    
+    def __next__(self):
+        if not aliterator.hasNext(self.category_iter):
+            raise StopIteration
+        current = aliterator.next(self.category_iter)
+        return current
+    
+    def __iter__(self):
+        return self
+
+class category_iterator:
+    def __init__(self, catalog, category):
+        self.category = category
+        super_list = mp.valueSet(catalog.videos)
+        self.super_iter = lliterator.newIterator(super_list)
+        country_map = lliterator.next(self.super_iter)
+        category_list = mp.get(country_map, category)['value']
+        self.category_iter = aliterator.newIterator(category_list)
+    
+    def __next__(self):
+        while not aliterator.hasNext(self.category_iter):
             if not lliterator.hasNext(self.super_iter):
                 raise StopIteration
             else:
-                self.especific_iter = aliterator.newIterator(lliterator.next(self.super_iter))
-        current = aliterator.next(self.especific_iter)
+                country_map = lliterator.next(self.super_iter)
+                category_list = mp.get(country_map, self.category)['value']
+                self.category_iter = aliterator.newIterator(category_list)
+        current = aliterator.next(self.category_iter)
         return current
+    
+    def __iter__(self):
+        return self
 
 class video_catalog:
     # Funciones para agregar informacion al catalogo
@@ -90,22 +150,30 @@ class video_catalog:
         if line:
             categories = lt.newList(datastructure='ARRAY_LIST')
             tags = lt.newList()
+            i = 0
             for element in line.items():
-                if element[0] in ['likes','dislikes','views','comment_count','category_id']:
+                if (i <=10 and 7 <= i) or i ==4:
                     lt.addLast(categories, int(element[1]))
-                elif element[0] != 'tags':
+                elif i != 6:
                     lt.addLast(categories, element[1])
                 else:
                     tagl = element[1].replace('"', '').split('|')
                     for tag in tagl:
                         lt.addLast(tags, tag)
-            country_list_pair = mp.get(self.videos, lt.getElement(categories, 16))
-            if country_list_pair:
-                country_list = country_list_pair[1]
+                i += 1
+            country_map_pair = mp.get(self.videos, lt.getElement(categories, 16))
+            if country_map_pair:
+                country_map = country_map_pair['value']
             else:
-                country_list = lt.newList(datastructure='ARRAY_LIST')
-                mp.put(self.videos, lt.getElement(categories, 15), country_list)
-            lt.addLast(country_list, (categories, tags))
+                country_map = mp.newMap(numelements=43)
+                mp.put(self.videos, lt.getElement(categories, 16), country_map)
+            category_list_pair = mp.get(country_map, lt.getElement(categories, 5))
+            if category_list_pair:
+                category_list = category_list_pair['value']
+            else:
+                category_list = lt.newList(datastructure='ARRAY_LIST')
+                mp.put(country_map, lt.getElement(categories, 5), category_list)
+            lt.addLast(category_list, (categories, tags))
     
     # Construccion de modelos
     def add_videos(self, filepath: str):
@@ -135,10 +203,66 @@ class video_catalog:
     def __iter__(self):
         return catalog_iterator(self)
 
-    def req_4(self, category: int, n: int):
+    def req_1(self, country: str, category: int, n: int):
         top = lt.newList()
-        for video in self:
-             if_add_video_req_4(video, top, category, n)
+        for video in country_category_iterator(self, country, category):
+             if_add_video_req(video, top, 7, n)
+        return top
+
+    def req_2(self, country:str):
+        repeticiones = mp.newMap(numelements=20000)
+        for video in country_iterator(self, country):
+            video_id = lt.getElement(video[0], 1)
+            video_pair = mp.get(repeticiones, video_id)
+            if video_pair:
+                mp.put(repeticiones, video_id, (video, video_pair['value'][1]+1))
+            else:
+                mp.put(repeticiones, video_id, (video, 1))
+        videos_ids = mp.keySet(repeticiones)
+        id_iter = lliterator.newIterator(videos_ids)
+        maximo = 0
+        max_id = 0
+        while lliterator.hasNext(id_iter):
+            video_id = lliterator.next(id_iter)
+            video = mp.get(repeticiones, video_id)['value']
+            video_rep = video[1]
+            if video_rep > maximo:
+                maximo = video_rep
+                max_id = video_id
+        res = lt.newList()
+        res_vid = mp.get(repeticiones, video_id)['value']
+        lt.addFirst(res, res_vid[0])
+        return (res, res_vid[1])
+    
+    def req_3(self, category:str):
+        repeticiones = mp.newMap(numelements=20000)
+        for video in category_iterator(self, category):
+            video_id = lt.getElement(video[0], 1)
+            video_pair = mp.get(repeticiones, video_id)
+            if video_pair:
+                mp.put(repeticiones, video_id, (video, video_pair['value'][1]+1))
+            else:
+                mp.put(repeticiones, video_id, (video, 1))
+        videos_ids = mp.valueSet(repeticiones)
+        id_iter = lliterator.newIterator(videos_ids)
+        maximo = 0
+        max_vid = 0
+        while lliterator.hasNext(id_iter):
+            video = lliterator.next(id_iter)
+            video_rep = video[1]
+            if video_rep > maximo:
+                maximo = video_rep
+                max_vid = video[0]
+        res = lt.newList()
+        res_vid = mp.get(repeticiones, video_id)['value']
+        lt.addFirst(res, res_vid[0])
+        return (res, res_vid[1])
+
+    def req_4(self, country: str, tag:str, n: int):
+        top = lt.newList()
+        for video in country_iterator(self, country):
+            if lt.isPresent(video[1], tag):
+                if_add_video_req(video, top, 8, n)
         return top
 
 

@@ -37,7 +37,10 @@ operación solicitada
 def printMenu():
     print("Bienvenido")
     print("1- Cargar información en el catálogo")
-    print("2- Buscar los videos con más Likes")
+    print("2- Buscar video con más views")
+    print("3- Más días trending (Pais)")
+    print("4- Más días trending (Categoría)")
+    print("5- Buscar los videos con más Likes")
 
 catalog = None
 
@@ -75,10 +78,30 @@ while True:
         for a in catalog.tags["elements"]:
             print (a[0],"  ",a[1])
     elif int(inputs[0]) == 2:
+        country = input("Introduzca el pais que quiere consultar: ")
         category = int(input("Introduzca la categoria que quiere consultar: "))
         n = int(input("Introduzca n: "))
         print_parameters = ['title', 'channel_title', 'publish_time', 'views', 'likes', 'dislikes']
-        result = controller.req_4(catalog, print_parameters, n=n, tag=category)
+        result = controller.req_1(catalog, print_parameters, n=n, category=category, country=country)
+        printResults(print_parameters, result)
+    elif int(inputs[0]) == 3:
+        country = input("Introduzca el pais que quiere consultar: ")
+        print_parameters = ['title', 'channel_title', 'publish_time', 'views', 'likes', 'dislikes']
+        result = controller.req_2(catalog, print_parameters, country)
+        printResults(print_parameters, result[0])
+        print("Repeticiones",result[1])
+    elif int(inputs[0]) == 4:
+        category = int(input("Introduzca la categoria que quiere consultar: "))
+        print_parameters = ['title', 'channel_title', 'publish_time', 'views', 'likes', 'dislikes']
+        result = controller.req_3(catalog, print_parameters, category)
+        printResults(print_parameters, result[0])
+        print("Repeticiones",result[1])
+    elif int(inputs[0]) == 5:
+        country = input("Introduzca el pais que quiere consultar: ")
+        tag = input("Introduzca el tag que quiere consultar: ")
+        n = int(input("Introduzca n: "))
+        print_parameters = ['title', 'channel_title', 'publish_time', 'views', 'likes', 'dislikes', 'tags']
+        result = controller.req_4(catalog, print_parameters, n=n, tag=tag, country=country)
         printResults(print_parameters, result)
     else:
         sys.exit(0)
